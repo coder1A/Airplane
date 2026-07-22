@@ -7,9 +7,19 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select Xcode >= 16.1
+        run: |
+          echo "Mavjud Xcode versiyalari:"
+          ls -d /Applications/Xcode_16*.app 2>/dev/null || true
+          XC=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -n1)
+          if [ -z "$XC" ]; then echo "Xcode 16 topilmadi!"; ls -d /Applications/Xcode_*.app; exit 1; fi
+          echo "Tanlandi: $XC"
+          sudo xcode-select -s "$XC/Contents/Developer"
+          xcodebuild -version
 
       - uses: actions/setup-node@v4
         with:
