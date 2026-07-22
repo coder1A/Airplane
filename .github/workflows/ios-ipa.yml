@@ -75,16 +75,28 @@ jobs:
         if: failure()
         run: |
           LOG=ios/xcodebuild.log
-          echo "================= xato belgilari ================="
-          grep -niE "error:|fatal error|cannot find|no such module|not found|unable to|failed with|The following build commands failed" "$LOG" | head -100 || true
-          echo "================= ExpoModulesJSI atrofidagi 200 qator ================="
-          LINE=$(grep -niE "failed with a nonzero|BUILD FAILED|The following build commands failed" "$LOG" | head -n1 | cut -d: -f1)
-          if [ -n "$LINE" ]; then
-            START=$((LINE-200)); [ "$START" -lt 1 ] && START=1
-            sed -n "${START},${LINE}p" "$LOG"
-          else
-            tail -200 "$LOG"
-          fi
+          [ -f "$LOG" ] || LOG=/dev/null
+          {
+            echo "## ❌ iOS build xatolari"
+            echo ""
+            echo "### \`error:\` qatorlari (kontekst bilan)"
+            echo '```'
+            grep -nE -A3 "error:|fatal error:|cannot find|no such module|no such file|ambiguous" "$LOG" | head -200 || echo "(error: qatori topilmadi)"
+            echo '```'
+            echo ""
+            echo "### Log oxiri (80 qator)"
+            echo '```'
+            tail -80 "$LOG"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload full build log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: ios/xcodebuild.log
+          if-no-files-found: warn
 
       - name: Package unsigned .ipa
         run: |
