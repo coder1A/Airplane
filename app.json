@@ -30,7 +30,18 @@
     "plugins": [
       [
         "expo-location",
-        { "locationWhenInUsePermission": "Atrofingizdagi samolyotlarni ko'rsatish uchun joylashuv kerak." }
+        {
+          "locationWhenInUsePermission": "Atrofingizdagi samolyotlarni ko'rsatish uchun joylashuv kerak."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "buildReactNativeFromSource": true,
+            "usePrecompiledModules": false
+          }
+        }
       ]
     ]
   }
