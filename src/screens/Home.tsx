@@ -1,11 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { useApp, ADS_ENABLED } from '../state';
 import { useNav } from '../nav';
 import { usePalette } from '../components/ui';
 import { MapRadar, type MapRadarHandle } from '../components/MapRadar';
-import { useAircraft, useLocation } from '../hooks';
+import { useAircraft } from '../hooks';
 import { AIRPORTS, flightFromAircraft } from '../data';
 import { searchCity, Place } from '../services';
 import { C } from '../theme';
@@ -20,13 +20,11 @@ export function HomeScreen({ topInset }: { topInset: number }) {
 
   const [query, setQuery] = useState({ lat: app.center.lat, lon: app.center.lon, radiusKm: 120 });
   const { aircraft } = useAircraft(query.lat, query.lon, query.radiusKm);
-  const { locate, busy } = useLocation();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState('');
   const [cities, setCities] = useState<Place[]>([]);
   const [selHex, setSelHex] = useState<string | null>(null);
-  const [showUser, setShowUser] = useState(false);
 
   const sel = aircraft.find((a) => a.hex === selHex) || null;
   const apMatches = q.trim().length >= 1
@@ -37,17 +35,6 @@ export function HomeScreen({ topInset }: { topInset: number }) {
     setQ(text);
     try { setCities(await searchCity(text, app.lang)); } catch { setCities([]); }
   };
-  const gps = async () => {
-    const loc = await locate();
-    if (loc) {
-      app.setCenter({ lat: loc.lat, lon: loc.lon, label: t('cityMe') });
-      setShowUser(true);
-      mapRef.current?.animateTo(loc.lat, loc.lon);
-    } else {
-      app.showToast(t('locErr'));
-    }
-  };
-
   const showAd = ADS_ENABLED && !app.premium;
 
   return (
@@ -57,10 +44,11 @@ export function HomeScreen({ topInset }: { topInset: number }) {
         theme={theme}
         initialCenter={{ lat: app.center.lat, lon: app.center.lon }}
         aircraft={aircraft}
+        airports={AIRPORTS}
         selectedHex={selHex}
         onSelect={(a) => setSelHex(a.hex)}
+        onSelectAirport={(ap) => { setSelHex(null); nav.openAirport(ap); }}
         onRegionChange={(lat, lon, radiusKm) => setQuery({ lat, lon, radiusKm })}
-        showUser={showUser}
       />
 
       {/* Search bar */}
@@ -77,13 +65,6 @@ export function HomeScreen({ topInset }: { topInset: number }) {
           onChangeText={runSearch}
           autoCorrect={false}
         />
-        <Pressable onPress={gps} hitSlop={8}>
-          {busy ? <ActivityIndicator color={C.amber} /> : (
-            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={C.amber} strokeWidth={1.8}>
-              <Circle cx={12} cy={12} r={3.2} /><Path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
-            </Svg>
-          )}
-        </Pressable>
       </View>
 
       {/* Search results */}

@@ -10,7 +10,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "uz.planeradar.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Atrofingizdagi samolyotlarni ko'rsatish uchun joriy joylashuvingiz kerak.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -28,12 +27,6 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": "Atrofingizdagi samolyotlarni ko'rsatish uchun joylashuv kerak."
-        }
-      ],
       [
         "expo-build-properties",
         {
