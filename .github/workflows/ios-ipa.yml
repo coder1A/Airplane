@@ -43,29 +43,41 @@ jobs:
           echo "ws=$WS" >> "$GITHUB_OUTPUT"
           echo "scheme=$(basename "$WS" .xcworkspace)" >> "$GITHUB_OUTPUT"
 
-      - name: Archive (unsigned)
+      - name: Build (unsigned)
         run: |
           cd ios
+          set -o pipefail
           xcodebuild \
             -workspace "${{ steps.xc.outputs.ws }}" \
             -scheme "${{ steps.xc.outputs.scheme }}" \
             -configuration Release \
             -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$PWD/build/app.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            archive
+            -derivedDataPath build \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_IDENTITY="" \
+            clean build 2>&1 | tee xcodebuild.log
+
+      - name: Show real errors (on failure)
+        if: failure()
+        run: |
+          echo "================= error: qatorlari ================="
+          grep -nE "error:" ios/xcodebuild.log | head -80 || true
+          echo "================= oxirgi 80 qator ================="
+          tail -80 ios/xcodebuild.log || true
 
       - name: Package unsigned .ipa
         run: |
-          cd ios/build
+          cd ios
+          APP=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -n1)
+          echo "App bundle: $APP"
+          rm -rf Payload PlaneRadar-unsigned.ipa
           mkdir -p Payload
-          cp -R app.xcarchive/Products/Applications/*.app Payload/
+          cp -R "$APP" Payload/
           zip -qr PlaneRadar-unsigned.ipa Payload
           ls -lh PlaneRadar-unsigned.ipa
 
       - uses: actions/upload-artifact@v4
         with:
           name: PlaneRadar-unsigned-ipa
-          path: ios/build/PlaneRadar-unsigned.ipa
+          path: ios/PlaneRadar-unsigned.ipa
           if-no-files-found: error
