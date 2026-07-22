@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, useWindowDimensions, ActivityIndicator } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { useApp, ADS_ENABLED } from '../state';
 import { useNav } from '../nav';
 import { usePalette } from '../components/ui';
-import { RadarMap } from '../components/RadarMap';
+import { MapRadar, type MapRadarHandle } from '../components/MapRadar';
 import { useAircraft, useLocation } from '../hooks';
 import { AIRPORTS, flightFromAircraft } from '../data';
 import { searchCity, Place } from '../services';
@@ -16,14 +16,17 @@ export function HomeScreen({ topInset }: { topInset: number }) {
   const nav = useNav();
   const { p, theme } = usePalette();
   const t = app.t;
-  const { width, height } = useWindowDimensions();
-  const { aircraft } = useAircraft(app.center.lat, app.center.lon, 300);
+  const mapRef = useRef<MapRadarHandle>(null);
+
+  const [query, setQuery] = useState({ lat: app.center.lat, lon: app.center.lon, radiusKm: 120 });
+  const { aircraft } = useAircraft(query.lat, query.lon, query.radiusKm);
   const { locate, busy } = useLocation();
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState('');
   const [cities, setCities] = useState<Place[]>([]);
   const [selHex, setSelHex] = useState<string | null>(null);
+  const [showUser, setShowUser] = useState(false);
 
   const sel = aircraft.find((a) => a.hex === selHex) || null;
   const apMatches = q.trim().length >= 1
@@ -36,22 +39,28 @@ export function HomeScreen({ topInset }: { topInset: number }) {
   };
   const gps = async () => {
     const loc = await locate();
-    if (loc) app.setCenter({ lat: loc.lat, lon: loc.lon, label: t('cityMe') });
-    else app.showToast(t('locErr'));
+    if (loc) {
+      app.setCenter({ lat: loc.lat, lon: loc.lon, label: t('cityMe') });
+      setShowUser(true);
+      mapRef.current?.animateTo(loc.lat, loc.lon);
+    } else {
+      app.showToast(t('locErr'));
+    }
   };
 
   const showAd = ADS_ENABLED && !app.premium;
 
   return (
     <View style={{ flex: 1, backgroundColor: p.scrBg }}>
-      <RadarMap
-        width={width}
-        height={height}
+      <MapRadar
+        ref={mapRef}
         theme={theme}
-        center={app.center}
+        initialCenter={{ lat: app.center.lat, lon: app.center.lon }}
         aircraft={aircraft}
         selectedHex={selHex}
         onSelect={(a) => setSelHex(a.hex)}
+        onRegionChange={(lat, lon, radiusKm) => setQuery({ lat, lon, radiusKm })}
+        showUser={showUser}
       />
 
       {/* Search bar */}
@@ -88,7 +97,7 @@ export function HomeScreen({ topInset }: { topInset: number }) {
               </Pressable>
             ))}
             {cities.map((c, i) => (
-              <Pressable key={'c' + i} style={[st.row, { borderColor: p.hair }]} onPress={() => { app.setCenter({ lat: c.lat, lon: c.lon, label: c.name }); setSearchOpen(false); setQ(''); }}>
+              <Pressable key={'c' + i} style={[st.row, { borderColor: p.hair }]} onPress={() => { app.setCenter({ lat: c.lat, lon: c.lon, label: c.name }); mapRef.current?.animateTo(c.lat, c.lon); setSearchOpen(false); setQ(''); }}>
                 <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={p.ink3} strokeWidth={1.7}><Path d="M12 21s7-6.4 7-11a7 7 0 10-14 0c0 4.6 7 11 7 11Z" /><Circle cx={12} cy={10} r={2.5} /></Svg>
                 <View><Text style={{ color: p.ink, fontSize: 14, fontWeight: '600' }}>{c.name}</Text><Text style={{ color: p.ink3, fontSize: 12 }}>{c.country}</Text></View>
               </Pressable>
