@@ -1,5 +1,8 @@
-// Network services: live aircraft (adsb.fi) + city geocoding (Open-Meteo). No API keys.
+// Network services: live aircraft (adsb.fi) + city geocoding (Open-Meteo) +
+// real airport departure/arrival boards (AeroDataBox).
 import type { Aircraft } from './geo';
+import type { FlightRow, FlightStatus } from './data';
+import { AERODATABOX_KEY } from './config';
 
 const KM_PER_NM = 1.852;
 
@@ -52,4 +55,90 @@ export async function searchCity(query: string, lang = 'uz'): Promise<Place[]> {
     lat: r.latitude,
     lon: r.longitude,
   }));
+}
+
+// ---- Real airport departure/arrival board (AeroDataBox via RapidAPI) ----
+
+export type Board = { deps: FlightRow[]; arrs: FlightRow[] };
+
+const boardCache = new Map<string, { ts: number; data: Board }>();
+const BOARD_TTL = 3 * 60 * 1000; // 3 min — conserve the free quota
+
+function mapStatus(s: string): FlightStatus {
+  switch (s) {
+    case 'Canceled':
+    case 'Cancelled':
+    case 'CanceledUncertain':
+      return 'cancelled';
+    case 'Delayed':
+      return 'delayed';
+    case 'Boarding':
+    case 'GateClosed':
+    case 'CheckIn':
+      return 'boarding';
+    case 'Departed':
+      return 'departed';
+    case 'Arrived':
+      return 'landed';
+    case 'Approaching':
+      return 'approx';
+    default:
+      return 'onTime'; // Expected, EnRoute, Unknown, Diverted, ...
+  }
+}
+
+// "2026-07-22 02:45+04:00" -> "02:45"
+function hhmm(local?: string): string {
+  if (!local) return '--:--';
+  const m = local.match(/\s(\d{2}:\d{2})/);
+  return m ? m[1] : '--:--';
+}
+
+function pad(n: number): string {
+  return n < 10 ? '0' + n : String(n);
+}
+// Format a Date's UTC fields as local wall-clock "YYYY-MM-DDTHH:mm".
+function fmtLocal(d: Date): string {
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+}
+
+export async function fetchAirportBoard(iata: string, tzOffsetH: number): Promise<Board> {
+  const cached = boardCache.get(iata);
+  if (cached && Date.now() - cached.ts < BOARD_TTL) return cached.data;
+  if (!AERODATABOX_KEY) throw new Error('no AeroDataBox key');
+
+  // Airport-local wall clock now = UTC + tz offset; window = [-1h, +11h] (12h max).
+  const nowLocal = new Date(Date.now() + tzOffsetH * 3_600_000);
+  const from = new Date(nowLocal.getTime() - 1 * 3_600_000);
+  const to = new Date(nowLocal.getTime() + 11 * 3_600_000);
+  const url =
+    `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${iata}/${fmtLocal(from)}/${fmtLocal(to)}` +
+    `?withLeg=false&direction=Both&withCancelled=true&withCodeshared=false&withCargo=false&withPrivate=false&withLocation=false`;
+
+  const res = await fetch(url, {
+    headers: { 'x-rapidapi-key': AERODATABOX_KEY, 'x-rapidapi-host': 'aerodatabox.p.rapidapi.com' },
+  });
+  if (!res.ok) throw new Error(`AeroDataBox HTTP ${res.status}`);
+  const data: any = await res.json();
+
+  const mapRow = (f: any, arriving: boolean): FlightRow => {
+    const ap = f?.movement?.airport ?? {};
+    const other = String(ap.iata || ap.icao || '—');
+    return {
+      no: String(f?.number ?? '').replace(/\s+/g, ''),
+      from: arriving ? other : iata,
+      to: arriving ? iata : other,
+      city: String(ap.name || ap.municipalityName || ''),
+      time: hhmm(f?.movement?.scheduledTime?.local),
+      status: mapStatus(String(f?.status ?? '')),
+      airline: f?.airline?.name ? String(f.airline.name) : undefined,
+      aircraft: f?.aircraft?.model ? String(f.aircraft.model) : undefined,
+    };
+  };
+
+  const deps = (Array.isArray(data.departures) ? data.departures : []).map((f: any) => mapRow(f, false)).slice(0, 40);
+  const arrs = (Array.isArray(data.arrivals) ? data.arrivals : []).map((f: any) => mapRow(f, true)).slice(0, 40);
+  const out: Board = { deps, arrs };
+  boardCache.set(iata, { ts: Date.now(), data: out });
+  return out;
 }

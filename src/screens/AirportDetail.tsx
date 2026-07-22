@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useApp } from '../state';
 import { useNav } from '../nav';
 import { usePalette } from '../components/ui';
 import { Segmented } from '../components/ui';
 import { Airport, generateFlights, flightFromRow, FlightRow, FlightStatus } from '../data';
+import { fetchAirportBoard } from '../services';
 import { C, Palette } from '../theme';
 
 function statusColor(st: FlightStatus, p: Palette): string {
@@ -15,6 +16,7 @@ function statusColor(st: FlightStatus, p: Palette): string {
     case 'boarding': return C.blue;
     case 'approx': return C.blue;
     case 'landed': return p.ink3;
+    case 'departed': return p.ink3;
     case 'cancelled': return C.red;
   }
 }
@@ -25,7 +27,21 @@ export function AirportDetailScreen({ airport, topInset }: { airport: Airport; t
   const { p } = usePalette();
   const t = app.t;
   const [tab, setTab] = useState<'info' | 'dep' | 'arr'>('info');
-  const { deps, arrs } = useMemo(() => generateFlights(airport), [airport]);
+  const [board, setBoard] = useState<{ deps: FlightRow[]; arrs: FlightRow[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setBoard(null);
+    fetchAirportBoard(airport.code, airport.tz)
+      .then((b) => { if (!cancelled) setBoard(b.deps.length || b.arrs.length ? b : generateFlights(airport)); })
+      .catch(() => { if (!cancelled) setBoard(generateFlights(airport)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [airport]);
+
+  const { deps, arrs } = board ?? { deps: [] as FlightRow[], arrs: [] as FlightRow[] };
   const saved = app.isAirportSaved(airport.code);
 
   const toggleSave = () => {
@@ -88,13 +104,21 @@ export function AirportDetailScreen({ airport, topInset }: { airport: Airport; t
         {tab === 'dep' && (
           <>
             <Text style={[s.head, { color: p.ink3 }]}>{t('depHead')}</Text>
-            <View style={[s.list, { backgroundColor: p.glass, borderColor: p.glassLine }]}>{deps.map((f, i) => renderFlight(f, i, false))}</View>
+            {loading ? (
+              <ActivityIndicator color={C.amber} style={{ marginTop: 30 }} />
+            ) : (
+              <View style={[s.list, { backgroundColor: p.glass, borderColor: p.glassLine }]}>{deps.map((f, i) => renderFlight(f, i, false))}</View>
+            )}
           </>
         )}
         {tab === 'arr' && (
           <>
             <Text style={[s.head, { color: p.ink3 }]}>{t('arrHead')}</Text>
-            <View style={[s.list, { backgroundColor: p.glass, borderColor: p.glassLine }]}>{arrs.map((f, i) => renderFlight(f, i, true))}</View>
+            {loading ? (
+              <ActivityIndicator color={C.amber} style={{ marginTop: 30 }} />
+            ) : (
+              <View style={[s.list, { backgroundColor: p.glass, borderColor: p.glassLine }]}>{arrs.map((f, i) => renderFlight(f, i, true))}</View>
+            )}
           </>
         )}
       </ScrollView>

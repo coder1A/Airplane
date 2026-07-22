@@ -1,23 +1,25 @@
 // Static airport data + demo flight generation.
 import { addMinutes, pad2 } from './geo';
 
-export type Airport = { code: string; name: string; city: string; country: string; lat: number; lon: number };
+// tz = approximate UTC offset in hours (summer/DST where applicable), used to
+// window the airport-local flight board query.
+export type Airport = { code: string; name: string; city: string; country: string; lat: number; lon: number; tz: number };
 
 export const AIRPORTS: Airport[] = [
-  { code: 'TAS', name: 'Islom Karimov', city: 'Toshkent', country: "O'zbekiston", lat: 41.2579, lon: 69.2812 },
-  { code: 'SKD', name: 'Samarqand', city: 'Samarqand', country: "O'zbekiston", lat: 39.7005, lon: 66.9838 },
-  { code: 'CGK', name: 'Soekarno–Hatta', city: 'Jakarta', country: 'Indoneziya', lat: -6.1256, lon: 106.6559 },
-  { code: 'SIN', name: 'Changi', city: 'Singapur', country: 'Singapur', lat: 1.3644, lon: 103.9915 },
-  { code: 'DXB', name: 'Dubai Intl', city: 'Dubai', country: 'BAA', lat: 25.2532, lon: 55.3657 },
-  { code: 'IST', name: 'Istanbul', city: 'Istanbul', country: 'Turkiya', lat: 41.2753, lon: 28.7519 },
-  { code: 'LHR', name: 'Heathrow', city: 'London', country: 'Buyuk Britaniya', lat: 51.47, lon: -0.4543 },
-  { code: 'JFK', name: 'John F. Kennedy', city: 'Nyu-York', country: 'AQSh', lat: 40.6413, lon: -73.7781 },
-  { code: 'FRA', name: 'Frankfurt', city: 'Frankfurt', country: 'Germaniya', lat: 50.0379, lon: 8.5622 },
-  { code: 'SVO', name: 'Sheremetyevo', city: 'Moskva', country: 'Rossiya', lat: 55.9726, lon: 37.4146 },
-  { code: 'ALA', name: 'Almati', city: 'Almati', country: "Qozog'iston", lat: 43.3521, lon: 77.0405 },
-  { code: 'HKG', name: 'Hong Kong Intl', city: 'Gonkong', country: 'Xitoy', lat: 22.308, lon: 113.9185 },
-  { code: 'DEL', name: 'Indira Gandhi', city: 'Dehli', country: 'Hindiston', lat: 28.5562, lon: 77.1 },
-  { code: 'CDG', name: 'Charles de Gaulle', city: 'Parij', country: 'Fransiya', lat: 49.0097, lon: 2.5479 },
+  { code: 'TAS', name: 'Islom Karimov', city: 'Toshkent', country: "O'zbekiston", lat: 41.2579, lon: 69.2812, tz: 5 },
+  { code: 'SKD', name: 'Samarqand', city: 'Samarqand', country: "O'zbekiston", lat: 39.7005, lon: 66.9838, tz: 5 },
+  { code: 'CGK', name: 'Soekarno–Hatta', city: 'Jakarta', country: 'Indoneziya', lat: -6.1256, lon: 106.6559, tz: 7 },
+  { code: 'SIN', name: 'Changi', city: 'Singapur', country: 'Singapur', lat: 1.3644, lon: 103.9915, tz: 8 },
+  { code: 'DXB', name: 'Dubai Intl', city: 'Dubai', country: 'BAA', lat: 25.2532, lon: 55.3657, tz: 4 },
+  { code: 'IST', name: 'Istanbul', city: 'Istanbul', country: 'Turkiya', lat: 41.2753, lon: 28.7519, tz: 3 },
+  { code: 'LHR', name: 'Heathrow', city: 'London', country: 'Buyuk Britaniya', lat: 51.47, lon: -0.4543, tz: 1 },
+  { code: 'JFK', name: 'John F. Kennedy', city: 'Nyu-York', country: 'AQSh', lat: 40.6413, lon: -73.7781, tz: -4 },
+  { code: 'FRA', name: 'Frankfurt', city: 'Frankfurt', country: 'Germaniya', lat: 50.0379, lon: 8.5622, tz: 2 },
+  { code: 'SVO', name: 'Sheremetyevo', city: 'Moskva', country: 'Rossiya', lat: 55.9726, lon: 37.4146, tz: 3 },
+  { code: 'ALA', name: 'Almati', city: 'Almati', country: "Qozog'iston", lat: 43.3521, lon: 77.0405, tz: 5 },
+  { code: 'HKG', name: 'Hong Kong Intl', city: 'Gonkong', country: 'Xitoy', lat: 22.308, lon: 113.9185, tz: 8 },
+  { code: 'DEL', name: 'Indira Gandhi', city: 'Dehli', country: 'Hindiston', lat: 28.5562, lon: 77.1, tz: 5.5 },
+  { code: 'CDG', name: 'Charles de Gaulle', city: 'Parij', country: 'Fransiya', lat: 49.0097, lon: 2.5479, tz: 2 },
 ];
 
 export const AIRLINES: Record<string, string> = {
@@ -32,7 +34,7 @@ export const AIRCRAFT: Record<string, string> = {
 
 const AIRLINE_CODES = Object.keys(AIRLINES);
 
-export type FlightStatus = 'onTime' | 'delayed' | 'boarding' | 'approx' | 'landed' | 'cancelled';
+export type FlightStatus = 'onTime' | 'delayed' | 'boarding' | 'approx' | 'landed' | 'departed' | 'cancelled';
 
 export type FlightRow = {
   no: string;
@@ -41,6 +43,8 @@ export type FlightRow = {
   city: string; // the "other" endpoint city
   time: string; // dep time (departures) or arr time (arrivals)
   status: FlightStatus;
+  airline?: string; // real airline name (from live board)
+  aircraft?: string; // real aircraft model (from live board)
 };
 
 export type Flight = {
@@ -94,8 +98,8 @@ export function aircraftOf(no: string): string {
 export function flightFromRow(row: FlightRow, selCity: string, arriving: boolean): Flight {
   const base: Flight = {
     no: row.no,
-    airline: airlineOf(row.no),
-    aircraft: aircraftOf(row.no),
+    airline: row.airline || airlineOf(row.no),
+    aircraft: row.aircraft || aircraftOf(row.no),
     oCode: row.from,
     oCity: arriving ? row.city : selCity,
     oTime: arriving ? addMinutes(row.time, -135) : row.time,

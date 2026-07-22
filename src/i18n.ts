@@ -15,7 +15,7 @@ const uz: Dict = {
   airportSearchPh: "Aeroport nomi yoki kodi…",
   recent: 'Oxirgi qidiruvlar', results: 'Natijalar', noResults: 'Hech narsa topilmadi',
   recentEmpty: 'Oxirgi qidiruvlar shu yerda chiqadi',
-  onTime: 'Vaqtida', delayed: 'Kechikish', boarding: 'Chiqishda', approx: 'Taxminan', landed: "Qo'ndi", cancelled: "To'xtatilindi",
+  onTime: 'Vaqtida', delayed: 'Kechikish', boarding: 'Chiqishda', approx: 'Taxminan', landed: "Qo'ndi", departed: 'Uchdi', cancelled: "To'xtatilindi",
   gridCalAlt: 'Kalibrlangan balandlik', gridGS: 'Yer tezligi', gridGPS: 'GPS balandlik', gridVS: 'Vertikal tezlik', gridTAS: 'Haqiqiy havo tezligi', gridIAS: "Ko'rsatilgan (IAS)",
   apInfo: "Ma'lumot", apDep: 'Uchishlar', apArr: 'Qo’nishlar', depHead: 'Bugun · uchishlar', arrHead: 'Bugun · qo’nishlar (taxminiy)',
   infoFullName: "To'liq nom", infoIATA: 'IATA kodi', infoCity: 'Shahar', infoCountry: 'Davlat', infoToday: 'Bugungi reyslar',
@@ -41,7 +41,7 @@ const uz: Dict = {
 const en: Dict = {
   searchPh: 'Flight, airport, city…', airportSearchPh: 'Airport name or code…',
   recent: 'Recent searches', results: 'Results', noResults: 'Nothing found', recentEmpty: 'Recent searches appear here',
-  onTime: 'On time', delayed: 'Delayed', boarding: 'Boarding', approx: 'Approx.', landed: 'Landed', cancelled: 'Cancelled',
+  onTime: 'On time', delayed: 'Delayed', boarding: 'Boarding', approx: 'Approx.', landed: 'Landed', departed: 'Departed', cancelled: 'Cancelled',
   gridCalAlt: 'Calibrated altitude', gridGS: 'Ground speed', gridGPS: 'GPS altitude', gridVS: 'Vertical speed', gridTAS: 'True airspeed', gridIAS: 'Indicated (IAS)',
   apInfo: 'Info', apDep: 'Departures', apArr: 'Arrivals', depHead: 'Today · departures', arrHead: 'Today · arrivals (est.)',
   infoFullName: 'Full name', infoIATA: 'IATA code', infoCity: 'City', infoCountry: 'Country', infoToday: 'Flights today',
@@ -66,7 +66,7 @@ const en: Dict = {
 const es: Dict = {
   searchPh: 'Vuelo, aeropuerto, ciudad…', airportSearchPh: 'Nombre o código…',
   recent: 'Búsquedas recientes', results: 'Resultados', noResults: 'Sin resultados', recentEmpty: 'Aquí aparecen las búsquedas',
-  onTime: 'A tiempo', delayed: 'Retrasado', boarding: 'Embarque', approx: 'Aprox.', landed: 'Aterrizó', cancelled: 'Cancelado',
+  onTime: 'A tiempo', delayed: 'Retrasado', boarding: 'Embarque', approx: 'Aprox.', landed: 'Aterrizó', departed: 'Despegó', cancelled: 'Cancelado',
   gridCalAlt: 'Altitud calibrada', gridGS: 'Vel. en tierra', gridGPS: 'Altitud GPS', gridVS: 'Vel. vertical', gridTAS: 'Vel. verdadera', gridIAS: 'Indicada (IAS)',
   apInfo: 'Info', apDep: 'Salidas', apArr: 'Llegadas', depHead: 'Hoy · salidas', arrHead: 'Hoy · llegadas (est.)',
   infoFullName: 'Nombre completo', infoIATA: 'Código IATA', infoCity: 'Ciudad', infoCountry: 'País', infoToday: 'Vuelos hoy',
@@ -91,7 +91,7 @@ const es: Dict = {
 const ru: Dict = {
   searchPh: 'Рейс, аэропорт, город…', airportSearchPh: 'Название или код…',
   recent: 'Недавние', results: 'Результаты', noResults: 'Ничего не найдено', recentEmpty: 'Здесь появятся недавние',
-  onTime: 'Вовремя', delayed: 'Задержка', boarding: 'Посадка', approx: 'Прибл.', landed: 'Приземлился', cancelled: 'Отменён',
+  onTime: 'Вовремя', delayed: 'Задержка', boarding: 'Посадка', approx: 'Прибл.', landed: 'Приземлился', departed: 'Вылетел', cancelled: 'Отменён',
   gridCalAlt: 'Калибр. высота', gridGS: 'Путевая скорость', gridGPS: 'GPS высота', gridVS: 'Верт. скорость', gridTAS: 'Истинная скорость', gridIAS: 'Приборная (IAS)',
   apInfo: 'Инфо', apDep: 'Вылеты', apArr: 'Прилёты', depHead: 'Сегодня · вылеты', arrHead: 'Сегодня · прилёты (прибл.)',
   infoFullName: 'Полное название', infoIATA: 'Код IATA', infoCity: 'Город', infoCountry: 'Страна', infoToday: 'Рейсов сегодня',

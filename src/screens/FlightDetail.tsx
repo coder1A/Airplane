@@ -15,6 +15,7 @@ function statusColor(st: FlightStatus, p: Palette): string {
     case 'boarding': return C.blue;
     case 'approx': return C.blue;
     case 'landed': return p.ink3;
+    case 'departed': return p.ink3;
     case 'cancelled': return C.red;
   }
 }

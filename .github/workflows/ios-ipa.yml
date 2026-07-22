@@ -8,6 +8,11 @@ on:
 jobs:
   build:
     runs-on: macos-15
+    env:
+      # Real airport schedules (AeroDataBox). Set this in
+      # Settings → Secrets and variables → Actions → New repository secret.
+      # If unset, the app falls back to demo schedules.
+      EXPO_PUBLIC_AERODATABOX_KEY: ${{ secrets.AERODATABOX_KEY }}
     steps:
       - uses: actions/checkout@v4
 
