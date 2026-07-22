@@ -1,0 +1,61 @@
+name: iOS unsigned IPA
+
+# Windows'dan Mac'siz .ipa: bepul macOS runner'da imzolanmagan IPA quriladi,
+# keyin uni telefonda eSign o'z sertifikatingiz bilan imzolaydi.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Expo prebuild (generate ios/)
+        run: npx expo prebuild -p ios --clean --no-install
+
+      - name: Pod install
+        run: cd ios && pod install
+
+      - name: Resolve workspace & scheme
+        id: xc
+        run: |
+          cd ios
+          WS=$(ls -d *.xcworkspace | head -n1)
+          echo "ws=$WS" >> "$GITHUB_OUTPUT"
+          echo "scheme=$(basename "$WS" .xcworkspace)" >> "$GITHUB_OUTPUT"
+
+      - name: Archive (unsigned)
+        run: |
+          cd ios
+          xcodebuild \
+            -workspace "${{ steps.xc.outputs.ws }}" \
+            -scheme "${{ steps.xc.outputs.scheme }}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/app.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            archive
+
+      - name: Package unsigned .ipa
+        run: |
+          cd ios/build
+          mkdir -p Payload
+          cp -R app.xcarchive/Products/Applications/*.app Payload/
+          zip -qr PlaneRadar-unsigned.ipa Payload
+          ls -lh PlaneRadar-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PlaneRadar-unsigned-ipa
+          path: ios/build/PlaneRadar-unsigned.ipa
+          if-no-files-found: error

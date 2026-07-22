@@ -1,17 +1,23 @@
 {
   "expo": {
-    "name": "plane-radar-app",
+    "name": "Plane Radar",
     "slug": "plane-radar-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "uz.planeradar.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Atrofingizdagi samolyotlarni ko'rsatish uchun joriy joylashuvingiz kerak.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "uz.planeradar.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0b1119",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +26,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        { "locationWhenInUsePermission": "Atrofingizdagi samolyotlarni ko'rsatish uchun joylashuv kerak." }
+      ]
+    ]
   }
 }
